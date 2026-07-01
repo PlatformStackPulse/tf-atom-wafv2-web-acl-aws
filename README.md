@@ -1,9 +1,13 @@
 # tf-atom-wafv2-web-acl-aws
 
-[![CI](https://github.com/PlatformStackPulse/tf-atom-wafv2-web-acl-aws/actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
-[![Release](https://github.com/PlatformStackPulse/tf-atom-wafv2-web-acl-aws/actions/workflows/auto-release.yml/badge.svg)](../../actions/workflows/auto-release.yml)
-![Terraform](https://img.shields.io/badge/terraform-%3E%3D1.11.3-blue?logo=terraform)
-![License](https://img.shields.io/github/license/PlatformStackPulse/tf-atom-wafv2-web-acl-aws)
+[![Terraform Format](https://img.shields.io/badge/terraform-fmt-blue?logo=terraform)](https://github.com/PlatformStackPulse/tf-atom-wafv2-web-acl-aws/actions)
+[![Terraform Validate](https://img.shields.io/badge/terraform-validate-blue?logo=terraform)](https://github.com/PlatformStackPulse/tf-atom-wafv2-web-acl-aws/actions)
+[![TFLint](https://img.shields.io/badge/tflint-passing-brightgreen?logo=terraform)](https://github.com/PlatformStackPulse/tf-atom-wafv2-web-acl-aws/actions)
+[![Terraform Test](https://img.shields.io/badge/tests-2%20passed-brightgreen?logo=terraform)](https://github.com/PlatformStackPulse/tf-atom-wafv2-web-acl-aws/actions)
+[![Security Scan](https://img.shields.io/badge/trivy-passing-brightgreen?logo=aqua)](https://github.com/PlatformStackPulse/tf-atom-wafv2-web-acl-aws/actions)
+[![Conventional Commits](https://img.shields.io/badge/commits-conventional-blue?logo=conventionalcommits)](https://conventionalcommits.org)
+[![Documentation](https://img.shields.io/badge/docs-terraform--docs-blue?logo=readthedocs)](https://github.com/PlatformStackPulse/tf-atom-wafv2-web-acl-aws/actions)
+[![License](https://img.shields.io/badge/license-MIT-blue?logo=opensourceinitiative)](LICENSE)
 
 Terraform atom module that provisions an **AWS WAFv2 Web ACL** (`aws_wafv2_web_acl`) — regional or CloudFront-scoped — with a configurable default action, a dynamic rule set (managed rule groups, rule-group / IP-set references, and rate-based rules), and CloudWatch visibility. Naming and tags are driven by the [tf-label](https://github.com/PlatformStackPulse/tf-label) context so the ACL fits a consistent `namespace-stage-name` convention.
 
