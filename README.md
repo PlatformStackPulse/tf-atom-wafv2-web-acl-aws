@@ -1,30 +1,22 @@
-# Terraform Module Template
+# tf-atom-wafv2-web-acl-aws
 
-<!-- Badges: Update REPO_OWNER/REPO_NAME after creating from template -->
-[![CI](https://github.com/PlatformStackPulse/terraform-atom-molecule-module-template/actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
-[![Release](https://github.com/PlatformStackPulse/terraform-atom-molecule-module-template/actions/workflows/auto-release.yml/badge.svg)](../../actions/workflows/auto-release.yml)
-[![CodeQL](https://github.com/PlatformStackPulse/terraform-atom-molecule-module-template/actions/workflows/codeql.yml/badge.svg)](../../actions/workflows/codeql.yml)
-[![Changelog](https://github.com/PlatformStackPulse/terraform-atom-molecule-module-template/actions/workflows/changelog.yml/badge.svg)](../../actions/workflows/changelog.yml)
-![Latest Release](https://img.shields.io/github/v/release/PlatformStackPulse/terraform-atom-molecule-module-template?label=latest%20release&sort=semver)
-![Terraform](https://img.shields.io/badge/terraform-%3E%3D1.6.0-blue?logo=terraform)
-![License](https://img.shields.io/github/license/PlatformStackPulse/terraform-atom-molecule-module-template)
+[![CI](https://github.com/PlatformStackPulse/tf-atom-wafv2-web-acl-aws/actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
+[![Release](https://github.com/PlatformStackPulse/tf-atom-wafv2-web-acl-aws/actions/workflows/auto-release.yml/badge.svg)](../../actions/workflows/auto-release.yml)
+![Terraform](https://img.shields.io/badge/terraform-%3E%3D1.11.3-blue?logo=terraform)
+![License](https://img.shields.io/github/license/PlatformStackPulse/tf-atom-wafv2-web-acl-aws)
 
-A production-ready template for creating Terraform modules following the **one module per repository** best practice, with built-in CI/CD, security scanning, testing, documentation generation, and publishing to public registries.
+Terraform atom module that provisions an **AWS WAFv2 Web ACL** (`aws_wafv2_web_acl`) — regional or CloudFront-scoped — with a configurable default action, a dynamic rule set (managed rule groups, rule-group / IP-set references, and rate-based rules), and CloudWatch visibility. Naming and tags are driven by the [tf-label](https://github.com/PlatformStackPulse/tf-label) context so the ACL fits a consistent `namespace-stage-name` convention.
 
 ## Features
 
-- **One Module Per Repo** — Module lives at the root; no nested `modules/` directory
-- **Registry Publishing** — Auto-publish to Terraform Registry, Artifactory, or GitLab on release
-- **Native Terraform Testing** — `terraform test` with mock providers (no external tools)
-- **Security Scanning** — Trivy IaC scanning for HIGH/CRITICAL vulnerabilities
-- **Linting** — TFLint with AWS ruleset (preset "all")
-- **Auto Documentation** — terraform-docs generates README sections on every commit
-- **GitHub Actions CI/CD** — Workflows for the full module lifecycle
-- **Auto Release** — CI passes on main → auto-tag → GitHub Release created
-- **Pre-Commit Hooks** — Format, validate, lint, docs, and security on every commit
-- **Conventional Commits** — Enforced commit message format
-- **Semantic Versioning** — Automated version management and releases
-- **DevContainer** — VS Code remote development ready
+- **WAFv2 Web ACL** — Creates one `aws_wafv2_web_acl`, count-gated by the tf-label `enabled` flag
+- **Regional or CloudFront scope** — `scope` input validated to `REGIONAL` or `CLOUDFRONT`
+- **Configurable default action** — `allow` or `block` for unmatched requests
+- **Dynamic rules** — Per-rule `action`/`override_action`, plus `managed_rule_group`, `rule_group_arn`, `ip_set_arn`, and `rate_limit` statement types
+- **CloudWatch visibility** — Per-ACL and per-rule `cloudwatch_metrics_enabled` / `sampled_requests_enabled`
+- **tf-label naming** — Consistent `id` and tags via the shared `module.this` context
+- **Native Terraform tests** — `terraform test` unit suite with a mock AWS provider (no AWS calls)
+- **CI/CD** — Format, validate, TFLint, Trivy security scan, terraform-docs freshness, and auto-release
 
 ## CI Pipeline
 
@@ -77,15 +69,53 @@ See [TEMPLATE_GUIDE.md](TEMPLATE_GUIDE.md) for detailed instructions.
 
 ## Usage
 
-### From GitHub
+### Minimal (regional Web ACL, default allow)
 
 ```hcl
-module "this" {
-  source = "github.com/PlatformStackPulse/terraform-aws-my-module?ref=v1.0.0"
+module "web_acl" {
+  source = "git::https://github.com/PlatformStackPulse/tf-atom-wafv2-web-acl-aws.git?ref=v1.0.0"
 
-  name        = "my-resource"
-  environment = "dev"
-  namespace   = "myorg"
+  # tf-label naming context
+  namespace = "eg"
+  stage     = "prod"
+  name      = "edge"
+
+  # Required module input
+  scope = "REGIONAL"
+}
+```
+
+### With a managed rule group and a rate-based rule
+
+```hcl
+module "web_acl" {
+  source = "git::https://github.com/PlatformStackPulse/tf-atom-wafv2-web-acl-aws.git?ref=v1.0.0"
+
+  namespace = "eg"
+  stage     = "prod"
+  name      = "edge"
+
+  scope          = "CLOUDFRONT"
+  default_action = "allow"
+  description    = "Edge protection Web ACL"
+
+  rules = [
+    {
+      name            = "aws-common"
+      priority        = 1
+      override_action = "none"
+      managed_rule_group = {
+        name        = "AWSManagedRulesCommonRuleSet"
+        vendor_name = "AWS"
+      }
+    },
+    {
+      name       = "rate-limit"
+      priority   = 2
+      action     = "block"
+      rate_limit = 2000
+    },
+  ]
 
   tags = {
     Project = "example"
@@ -94,23 +124,8 @@ module "this" {
 }
 ```
 
-### From Terraform Registry
-
-```hcl
-module "this" {
-  source  = "PlatformStackPulse/my-module/aws"
-  version = "~> 1.0"
-
-  name        = "my-resource"
-  environment = "dev"
-  namespace   = "myorg"
-
-  tags = {
-    Project = "example"
-    Owner   = "platform-engineering"
-  }
-}
-```
+> `scope` is the only required module input. For `CLOUDFRONT` scope the module must be
+> applied in `us-east-1`.
 
 ## Module Structure
 
@@ -325,6 +340,23 @@ Installed via `make hooks`. Runs on every commit:
 | <a name="output_enabled"></a> [enabled](#output\_enabled) | Whether the module is enabled. |
 | <a name="output_id"></a> [id](#output\_id) | The ID of the Web ACL. |
 <!-- END_TF_DOCS -->
+
+## Tests
+
+Unit tests live in [`tests/unit/main_test.tftest.hcl`](tests/unit/main_test.tftest.hcl) and run
+against a **mock AWS provider** (no real AWS calls, no credentials required). They cover:
+
+- `creates_when_enabled` — asserts the tf-label `id` (`eg-test-thing`), the `enabled` output, and that exactly one `aws_wafv2_web_acl` is planned.
+- `disabled_creates_nothing` — with `enabled = false`, asserts no resource is planned and the `id` output falls back to its empty-string default.
+
+Run them with either:
+
+```bash
+make test-unit
+# or, directly:
+terraform init -backend=false
+terraform test -test-directory=tests/unit
+```
 
 ## Learning Materials
 
